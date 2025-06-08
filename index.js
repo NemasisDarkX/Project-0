@@ -3,13 +3,16 @@ var fetch_date = new Date();
 function time() {
     var formate_time = fetch_date.toLocaleTimeString();
     document.getElementById("change").innerHTML = formate_time;
+    closeDropdown(); // Close dropdown after selection
 };
 
 function date() {
     var formate_date = fetch_date.toLocaleDateString();
     document.getElementById('change').innerHTML = formate_date
+    closeDropdown(); // Close dropdown after selection
 };
 
+// Dropdown functionality
 function toggleDropdown() {
     document.getElementById("myDropdown").classList.toggle("show");
 }
@@ -33,7 +36,91 @@ function closeDropdown() {
 }
 
 let rickrollTimeout; // to store the timeout reference
-let hasVideoPlayedOnce = false; // New flag to control video playback
+let videoElementReady = false; // Flag to indicate if video is ready to play
+let videoPlayAttempted = false; // Flag to track if we've tried to play the video in the current view
+
+window.addEventListener("DOMContentLoaded", () => {
+    const video = document.getElementById("rickVideo");
+    if (video) {
+        // Event listeners for video readiness
+        video.addEventListener('canplay', () => {
+            console.log("Video canplay event fired. Ready to play.");
+            videoElementReady = true;
+            // If the rickroll section is currently in view and we haven't attempted playing this cycle, try now.
+            // This handles cases where scroll event fires before video is ready.
+            const videoSection = document.getElementById("rickroll");
+            const videoRect = videoSection.getBoundingClientRect();
+            const isVideoSectionInView =
+                videoRect.top <= window.innerHeight / 2 &&
+                videoRect.bottom >= window.innerHeight / 2;
+
+            if (isVideoSectionInView && !video.paused) {
+                // If it's already playing (e.g., from muted autoplay), just ensure correct state
+                video.muted = false; // Attempt to unmute
+            } else if (isVideoSectionInView && video.paused) {
+                 // If paused and in view, try to play (this covers scenarios where autoplay was blocked)
+                 attemptVideoPlay(video);
+            }
+        });
+
+        // 'canplaythrough' means it can play to the end without buffering. More robust.
+        video.addEventListener('canplaythrough', () => {
+            console.log("Video canplaythrough event fired.");
+            videoElementReady = true;
+        });
+
+        video.addEventListener('error', (e) => {
+            console.error("Video error:", e);
+            console.error("Error code:", video.error.code); // MediaError.code (e.g., 4 for NETWORK_EMPTY)
+            console.error("Error message:", video.error.message); // More descriptive message
+            // You might want to display a fallback message or image here
+            // e.g., document.getElementById("rickroll").innerHTML = "<p>Video failed to load.</p>";
+        });
+
+        // Attempt to load the video immediately to start buffering
+        // This is often implicitly handled by `preload="auto"` but doesn't hurt.
+        video.load();
+    }
+});
+
+
+function attemptVideoPlay(video) {
+    if (!videoElementReady || !video || videoPlayAttempted) {
+        // If not ready, or already attempted in this scroll cycle, don't try again immediately.
+        return;
+    }
+
+    videoPlayAttempted = true; // Mark that we've attempted playing for this cycle
+
+    // Ensure it's not paused before trying to play.
+    // If it's paused, it means it's not being auto-played or was stopped.
+    // The `video.paused` check below is for the final unmuted play attempt.
+    if (video.paused) {
+        video.muted = false; // Try to unmute and play first
+        video.play().then(() => {
+            console.log("Video played successfully (unmuted attempt).");
+            // Optionally, reset videoPlayAttempted to false if you want it to trigger again
+            // immediately on next scroll, though the event listeners handle this better.
+        }).catch(error => {
+            console.warn("Unmuted video playback failed:", error);
+            // Fallback: If unmuted autoplay fails, try muted playback
+            video.muted = true;
+            video.play().then(() => {
+                console.log("Video played successfully (muted fallback).");
+            }).catch(err => {
+                console.error("Muted video playback also failed:", err);
+                // Last resort: If even muted playback fails, assume a major issue
+                // (e.g., file not found, corrupted, or browser policy too strict)
+                // You might display a static image or message.
+            });
+        });
+    } else if (video.muted) {
+        // If it's already playing (muted autoplay) but we are in view, unmute it.
+        video.muted = false;
+        console.log("Video was playing muted, now unmuted.");
+    }
+}
+
 
 window.addEventListener("scroll", () => {
     const bigText = document.getElementById("change");
@@ -41,13 +128,18 @@ window.addEventListener("scroll", () => {
     const videoSection = document.getElementById("rickroll");
     const video = document.getElementById("rickVideo");
 
+    // Ensure video element exists
+    if (!video) return;
+
     const aboutRect = aboutSection.getBoundingClientRect();
     const videoRect = videoSection.getBoundingClientRect();
 
-    // Check if the "rickroll" section is currently in view
     const isVideoSectionInView =
         videoRect.top <= window.innerHeight / 2 &&
         videoRect.bottom >= window.innerHeight / 2;
+
+    // Reset play attempt flag for each scroll cycle, assuming we want to re-evaluate playback
+    videoPlayAttempted = false;
 
     // About section (second)
     if (
@@ -57,31 +149,19 @@ window.addEventListener("scroll", () => {
         bigText.style.opacity = "0";
         bigText.innerHTML = "RICK ASTLEY";
         clearTimeout(rickrollTimeout);
-        // Do not stop or reset the video here. We only care about the rickroll section.
     }
-    // Rickroll section (third) - This is the only place the video should interact
+    // Rickroll section (third)
     else if (isVideoSectionInView) {
         bigText.innerHTML = "GET RICK ROLLED";
         bigText.style.opacity = "1";
 
-        // Clear previous timeout for the big text
         clearTimeout(rickrollTimeout);
-
-        // Set timeout to hide big text after 1 second
         rickrollTimeout = setTimeout(() => {
             bigText.style.opacity = "0";
-        }, 1000); // 1000ms = 1 second
+        }, 1000); // 1 second
 
-        // Play video with sound ONLY IF it's not playing and hasn't played once
-        // or if it's explicitly stopped/paused and we want it to resume
-        if (video.paused && !hasVideoPlayedOnce) { // Or if video.paused for subsequent scrolls
-             video.muted = false; // Unmute the video
-             video.play();
-             hasVideoPlayedOnce = true; // Set flag so it doesn't try to play again on subsequent scrolls
-        } else if (!video.paused && video.muted) {
-            // If the video is playing but was muted, unmute it when in view
-            video.muted = false;
-        }
+        // Try to play the video when the section is in view
+        attemptVideoPlay(video);
 
     }
     // Default state (first page or any other section not "about" or "rickroll")
@@ -89,16 +169,11 @@ window.addEventListener("scroll", () => {
         bigText.style.opacity = "1";
         bigText.innerHTML = "RICK ASTLEY";
         clearTimeout(rickrollTimeout);
-        // If not in the rickroll section, mute the video but let it keep playing in the background
-        // or pause if you truly want it to stop when not in view
+
+        // Mute the video when not in the rickroll section
         if (!video.paused) {
-            video.muted = true; // Mute it when not in the rickroll section
-            // If you want it to pause and reset when scrolling *away* from the rickroll, uncomment next two lines:
-            // video.pause();
-            // video.currentTime = 0;
+            video.muted = true;
         }
-        // Reset the 'hasVideoPlayedOnce' flag if you want the video to play again every time you scroll to it
-        // hasVideoPlayedOnce = false; // Uncomment if you want it to trigger every time
     }
 });
 
@@ -114,5 +189,3 @@ function change2() {
     currentIndex = (currentIndex + 1) % images.length;
     document.getElementById("rick-front").src = images[currentIndex];
 }
-
-// Removed the problematic reload logic.
