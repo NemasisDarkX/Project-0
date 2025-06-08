@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="style.css">
+    <script src="index.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Rick Astley</title>
+</head>
+<body>
+    <div class="dropdown">
+        <button class="dropbtn" onclick="toggleDropdown()">Options</button>
+        <div class="dropdown-content" id="myDropdown">
+            <a href="#" onclick="time(); return false;">TIME</a>
+            <a href="#" onclick="date(); return false;">Date</a>
+        </div>
+    </div>
+
+<div class="bg-image img1"></div>
+<div class="bg-image img2">
+    <div class="about" id="about-rick">
+      <div class="left-img">
+        <img src="./resources/4.png" alt="Rick Astley" id="rick-front">
+      </div>
+      <div class="right-text" id="check">
+        <h1 id="target"><b>RICK ASTLEY</b></h1>
+        <button id="theclick" onclick="change2()">→</button>
+        <p><b>Rick Astley</b> is a British singer and songwriter whose name became synonymous with one of the internet's most iconic memes.<br>
+          But long before the digital fame, he was a pop sensation with a voice that surprised the world.<br>
+          Born on February 6, 1966, in Lancashire, England, Rick Astley shot to fame in 1987 with his debut single,<br>
+          “Never Gonna Give You Up.” The track became a global hit, reaching #1 in 25 countries and making Rick an overnight star.<br>
+          His deep, soulful voice was an unexpected contrast to his youthful, clean-cut look — and that contrast became part of his appeal.
+        </p>
+      </div>
+    </div>
+  </div>
+
+<div class="bg-image img3" id="rickroll">
+    <video autoplay muted playsinline loop preload="auto" id="rickVideo">
+        <source src="./resources/rickroll.mp4" type="video/mp4">
+      </video>      
+</div>
+<div class="bg-text" id="change">RICK ASTLEY</div>
+
+</body>
+</html>
